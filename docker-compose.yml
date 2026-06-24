@@ -1,0 +1,13 @@
+services:
+  names:
+    build: .
+    container_name: names
+    restart: unless-stopped
+    # Reuse the default bridge network — the docker address pool is exhausted
+    # (33 compose networks). Caddy reaches us via the host's published port,
+    # not a dedicated subnet, so no project network is needed.
+    network_mode: bridge
+    ports:
+      - "20041:8080"
+    mem_limit: 96m
+    cpus: 0.3

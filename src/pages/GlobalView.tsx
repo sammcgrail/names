@@ -4,7 +4,7 @@ import { registerMapOnce } from '../utils/echartsLoader';
 import { useEChart } from '../utils/useEChart';
 import { topoToGeo } from '../utils/geo';
 import { buildNameColorScale, type ColorScale } from '../utils/colors';
-import { namesFor, topName } from '../utils/names';
+import { displayTop, namesFor, topName } from '../utils/names';
 import { sex, selectedCountry, SEX_LABEL } from '../state';
 import type { Country, GlobalNames, Sex } from '../types';
 import { CountryDrawer } from '../components/CountryDrawer';
@@ -64,7 +64,7 @@ export function GlobalView() {
       };
     });
     const badges = withData
-      .map((c) => ({ c, tn: topName(global, c.cca2, s) }))
+      .map((c) => ({ c, tn: displayTop(global, c.cca2, s) }))
       .sort((a, b) => a.c.name.localeCompare(b.c.name));
     return { scale, data, badges, withDataCount: withData.length };
   }, [loaded, s]);
@@ -95,13 +95,17 @@ export function GlobalView() {
           </div>
           <WorldMap loaded={loaded} derived={derived} sx={s} />
           <div class="legend">
-            {derived.scale.legend.map((l) => (
+            {derived.scale.legend.slice(0, 10).map((l) => (
               <span class="item" key={l.name}>
                 <span class="chip" style={{ background: l.color }} />
                 <b>{l.name}</b> ×{l.count}
               </span>
             ))}
           </div>
+          <p class="hint" style="margin-top:8px">
+            Global names are popularity rankings per gender (names-dataset), not birth counts — so
+            “Both” lists each gender’s leaders side by side.
+          </p>
         </div>
 
         <div class="panel">
@@ -192,7 +196,7 @@ function WorldMap({ loaded, derived, sx }: { loaded: Loaded; derived: Derived; s
     );
   }, [derived, sx, ready]);
 
-  return <div ref={elRef} class="viz" style={{ height: 'min(62vh, 560px)', minHeight: '360px' }} />;
+  return <div ref={elRef} class="viz" style={{ width: '100%', aspectRatio: '1.9 / 1', maxHeight: '560px' }} />;
 }
 
 function InferencePanel({ derived, s }: { derived: Derived; s: Sex }) {

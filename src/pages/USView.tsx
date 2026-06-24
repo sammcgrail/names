@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
-import { loadStatesTopo, loadUSNational, loadUSSeries, loadUSStates } from '../data/store';
+import { loadUSGeo, loadUSNational, loadUSSeries, loadUSStates } from '../data/store';
 import { registerMapOnce } from '../utils/echartsLoader';
 import { useEChart } from '../utils/useEChart';
-import { topoToGeo } from '../utils/geo';
-import { buildNameColorScale } from '../utils/colors';
+import { buildNameColorScale, nameColor } from '../utils/colors';
 import { fmtInt, fmtPct } from '../utils/format';
 import { ABBR_TO_NAME, NAME_TO_ABBR, US_STATES } from '../data/usStates';
 import {
@@ -43,10 +42,9 @@ export function USView() {
   const selSt = selectedState.value;
 
   useEffect(() => {
-    Promise.all([loadUSNational(), loadUSStates(), loadUSSeries(), loadStatesTopo()]).then(
-      async ([nat, states, series, topo]) => {
-        const geo = topoToGeo(topo, 'states');
-        await registerMapOnce('US', geo);
+    Promise.all([loadUSNational(), loadUSStates(), loadUSSeries(), loadUSGeo()]).then(
+      async ([nat, states, series, usGeo]) => {
+        await registerMapOnce('US', usGeo);
         usYear.value = states.maxYear;
         setBundle({ nat, states, series });
         setMapReady(true);
@@ -259,7 +257,7 @@ function USMap({ states }: { states: USStates }) {
     );
   }, [derived, s, ready]);
 
-  return <div ref={elRef} class="viz" style={{ height: 'min(56vh, 520px)', minHeight: '320px' }} />;
+  return <div ref={elRef} class="viz" style={{ width: '100%', aspectRatio: '1.7 / 1', maxHeight: '480px' }} />;
 }
 
 function MapLegend({ states }: { states: USStates }) {
@@ -326,7 +324,6 @@ function BarRace({ nat }: { nat: USNational }) {
     if (!chart || !ready) return;
     const rows = nationalRank(nat, s, year, 12);
     const names = rows.map((r) => r[0]);
-    const values = rows.map((r) => r[1]);
     chart.setOption({
       backgroundColor: 'transparent',
       grid: { left: 8, right: 56, top: 6, bottom: 6, containLabel: true },
@@ -350,8 +347,10 @@ function BarRace({ nat }: { nat: USNational }) {
         {
           type: 'bar',
           realtimeSort: true,
-          data: values,
-          itemStyle: { color: SEX_ACCENT[s], borderRadius: [0, 4, 4, 0] },
+          data: rows.map((r) => ({
+            value: r[1],
+            itemStyle: { color: nameColor(r[0]), borderRadius: [0, 4, 4, 0] },
+          })),
           label: {
             show: true,
             position: 'right',
@@ -381,7 +380,11 @@ function TrendChart({ series, years }: { series: USNameSeries; years: number[] }
   const allNames = useMemo(() => availableNames(series, s), [series, s]);
 
   useEffect(() => {
-    setPicked(allTimeTop(series, s, 5));
+    setPicked(
+      s === 'C'
+        ? [...allTimeTop(series, 'M', 3), ...allTimeTop(series, 'F', 2)]
+        : allTimeTop(series, s, 5),
+    );
   }, [series, s]);
 
   const palette = ['#5a9cff', '#f7637c', '#37c2a8', '#f6b73c', '#9b6bf2', '#41c4f0', '#ef7d3b', '#7bc950'];

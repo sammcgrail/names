@@ -31,7 +31,10 @@ export const loadGlobal = () => loadJSON<GlobalNames>('data/global_names.json');
 export const loadCountries = () => loadJSON<Country[]>('data/countries.json');
 export const loadMeta = () => loadJSON<Meta>('data/meta.json');
 export const loadWorldTopo = () => loadJSON<any>('data/geo/world-110m.json');
-export const loadStatesTopo = () => loadJSON<any>('data/geo/states-10m.json');
+// Canonical ECharts USA map (GeoJSON): Alaska & Hawaii repositioned as insets,
+// clean bbox. The raw us-atlas states-10m is lon/lat with Alaska crossing the
+// antimeridian + Pacific territories, which blows up the fit.
+export const loadUSGeo = () => loadJSON<any>('data/geo/usa-echarts.json');
 
 // ---- country lookups -------------------------------------------------------
 

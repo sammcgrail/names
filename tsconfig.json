@@ -12,6 +12,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
+    "types": ["vite/client"],
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx",

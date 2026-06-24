@@ -14,8 +14,8 @@ export function CountryDrawer({
   onClose: () => void;
 }) {
   const s = sex.value;
-  const hasData = !!global[country.cca2];
-  const names = namesFor(global, country.cca2, s, 20);
+  const g = global[country.cca2];
+  const hasData = !!g;
 
   return (
     <div class="drawer">
@@ -34,15 +34,24 @@ export function CountryDrawer({
         </div>
       </div>
       {hasData ? (
-        <>
-          <div class="section-title" style="margin-top:14px">
-            Top {SEX_LABEL[s].toLowerCase()} given names
-          </div>
-          <NameList names={names} />
-          <p class="hint" style="margin-top:10px">
-            Ranked by popularity. Click another country, the globe, or the map to compare.
-          </p>
-        </>
+        s === 'C' ? (
+          <>
+            <div class="section-title" style="margin-top:14px">Top male names</div>
+            <NameList names={g.M.slice(0, 12)} accent="var(--male)" />
+            <div class="section-title" style="margin-top:14px">Top female names</div>
+            <NameList names={g.F.slice(0, 12)} accent="var(--female)" />
+          </>
+        ) : (
+          <>
+            <div class="section-title" style="margin-top:14px">
+              Top {SEX_LABEL[s].toLowerCase()} given names
+            </div>
+            <NameList names={namesFor(global, country.cca2, s, 20)} />
+            <p class="hint" style="margin-top:10px">
+              Ranked by popularity. Click another country, the globe, or the map to compare.
+            </p>
+          </>
+        )
       ) : (
         <p class="hint" style="margin-top:14px">
           No name data available for {country.name} in the global dataset.

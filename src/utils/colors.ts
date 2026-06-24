@@ -1,8 +1,18 @@
 // Qualitative palette for "colour each region by its #1 name" choropleths.
+// 12 perceptually-distinct hues (no near-duplicate greens/teals).
 export const PALETTE = [
-  '#5a9cff', '#f7637c', '#37c2a8', '#f6b73c', '#9b6bf2', '#41c4f0',
-  '#ef7d3b', '#7bc950', '#e85d9e', '#46d0c0', '#d7b740', '#8aa0ff',
-  '#ff8f6b', '#62d98a', '#c98bff', '#f0c419',
+  '#5a9cff', // blue
+  '#f7637c', // red-pink
+  '#37c2a8', // teal
+  '#f6b73c', // amber
+  '#9b6bf2', // purple
+  '#41c4f0', // cyan
+  '#ef7d3b', // orange
+  '#7bc950', // green
+  '#e85d9e', // magenta
+  '#c9d24a', // lime
+  '#ff8f6b', // coral
+  '#b388ff', // lavender
 ];
 export const OTHER_COLOR = '#283142';
 
@@ -30,4 +40,12 @@ export function buildNameColorScale(
       .slice(0, maxColors)
       .map(([name, count]) => ({ name, color: map.get(name)!, count })),
   };
+}
+
+// Stable colour for a single name (so the same name keeps its colour across
+// years in the bar-chart race). Hash → palette index.
+export function nameColor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return PALETTE[h % PALETTE.length];
 }

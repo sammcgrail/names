@@ -41,13 +41,13 @@ RAW = ROOT / "raw"
 OUT = ROOT / "public" / "data"
 OUT.mkdir(parents=True, exist_ok=True)
 
-TODAY = "2026-06-24"
+TODAY = "2026-06-25"
 
 # State coverage boundaries
 STATE_MIN_YEAR = 1910
-STATE_MAX_YEAR = 2024
+STATE_MAX_YEAR = 2025
 STATE_CANON_MAX = 2020       # canonical zip covers 1910..2020
-STATE_SUPP_YEARS = [2021, 2022, 2023, 2024]  # supplemented from BazilAkram
+STATE_SUPP_YEARS = [2021, 2022, 2023, 2024, 2025]  # 2021-24 BazilAkram; 2025 = official SSA (derived)
 
 TOP_NATIONAL = 50            # top-N names per (year, sex) for rankByYear
 TOP_SERIES = 200             # top-N all-time names per sex for full series
@@ -287,8 +287,16 @@ def main():
     states_obj, state_list = build_states()
     sizes["us_states.json"] = write_json("us_states.json", states_obj)
 
-    global_obj, country_count = build_global()
-    sizes["global_names.json"] = write_json("global_names.json", global_obj)
+    # Global names have no year dimension and never change between SSA refreshes;
+    # SKIP_GLOBAL=1 reuses the existing JSON (avoids the ~3.2 GB names-dataset load).
+    if os.environ.get("SKIP_GLOBAL") == "1":
+        existing = json.load(open(OUT / "global_names.json", encoding="utf-8"))
+        country_count = len(existing)
+        print(f"[global] SKIP_GLOBAL=1 → reusing existing global_names.json "
+              f"({country_count} countries)")
+    else:
+        global_obj, country_count = build_global()
+        sizes["global_names.json"] = write_json("global_names.json", global_obj)
 
     countries = build_countries()
     sizes["countries.json"] = write_json("countries.json", countries)
@@ -299,7 +307,7 @@ def main():
             {"name": "U.S. Social Security Administration",
              "scope": "US national & state baby names",
              "license": "Public Domain",
-             "years": "1880–2024 (states 1910–2024)"},
+             "years": "1880–2025 (states 1910–2025)"},
             {"name": "names-dataset (philipperemy)",
              "scope": "Global first names by country & gender",
              "license": "Apache-2.0; data derived from a 2019 public data leak — names only",

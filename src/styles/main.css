@@ -264,6 +264,33 @@ body {
 /* wrapper that lets a big year label float over a chart */
 .viz-wrap { position: relative; }
 
+/* tiny reset-zoom affordance, top-right of every zoomable viz */
+.viz-reset {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--muted);
+  background: rgba(13, 19, 32, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  -webkit-tap-highlight-color: transparent;
+  z-index: 5;
+}
+.viz-reset:active { transform: scale(0.94); }
+@media (hover: hover) {
+  .viz-reset:hover { color: var(--text); border-color: var(--line2); }
+}
+
 /* prominent always-visible year readout over the bar-race / trend chart (feedback C).
    Big tabular number, top-right, with a faint backing so it stays legible over
    bars/lines without obscuring the data. */

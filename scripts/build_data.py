@@ -50,7 +50,7 @@ STATE_CANON_MAX = 2020       # canonical zip covers 1910..2020
 STATE_SUPP_YEARS = [2021, 2022, 2023, 2024, 2025]  # 2021-24 BazilAkram; 2025 = official SSA (derived)
 
 TOP_NATIONAL = 50            # top-N names per (year, sex) for rankByYear
-TOP_SERIES = 200             # top-N all-time names per sex for full series
+TOP_SERIES = 1000            # top-N all-time names per sex for full series
 TOP_STATE = 10               # top-N names per (state, year, sex)
 
 
@@ -120,7 +120,7 @@ def build_national():
         "rankByYear": per_year,
     }
 
-    # us_name_series: top-200 all-time names per sex, full yearly series
+    # us_name_series: top-N (TOP_SERIES) all-time names per sex, full yearly series
     name_series = {"M": {}, "F": {}}
     for sex in ("M", "F"):
         top = sorted(alltime[sex].items(), key=lambda x: (-x[1], x[0]))[:TOP_SERIES]

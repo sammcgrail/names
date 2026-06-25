@@ -143,6 +143,41 @@ export function USView() {
   );
 }
 
+// Static base option for the US map. No live signals in here (the hover tooltip
+// that used to read them is gone), so it can be re-applied verbatim to reset the
+// user's pan/zoom back to the home view.
+const US_MAP_OPTION = {
+  backgroundColor: 'transparent',
+  tooltip: { show: false },
+  series: [
+    {
+      type: 'map',
+      map: 'US',
+      roam: true,
+      scaleLimit: { min: 1, max: 12 },
+      nameProperty: 'name',
+      label: {
+        show: true,
+        color: '#0a0e18',
+        fontSize: 7.5,
+        fontWeight: 700,
+        // light halo keeps the small dark text legible over any state fill
+        textBorderColor: 'rgba(255,255,255,0.55)',
+        textBorderWidth: 1.4,
+        formatter: (p: any) => p.data?._top ?? '',
+      },
+      labelLayout: { hideOverlap: true },
+      itemStyle: { borderColor: 'rgba(10,14,24,0.7)', borderWidth: 0.6, areaColor: '#19202e' },
+      emphasis: {
+        label: { show: true, color: '#06101f', fontSize: 11 },
+        itemStyle: { areaColor: '#cfe0ff' },
+      },
+      select: { disabled: true },
+      data: [],
+    },
+  ],
+};
+
 // --------------------------------------------------------------------------
 function USMap({ states }: { states: USStates }) {
   const s = sex.value;
@@ -172,62 +207,19 @@ function USMap({ states }: { states: USStates }) {
     return { scale, data };
   }, [states, s, year]);
 
-  // Base option set ONCE. The tooltip reads the live `sex`/`usYear` signals, so
-  // it never goes stale — which means we never have to re-set the whole option
-  // (and thus never reset the user's roam) when the year or sex changes.
+  // Base option applied once; re-applied verbatim by resetView() to clear roam.
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart || !ready) return;
-    chart.setOption(
-      {
-        backgroundColor: 'transparent',
-        tooltip: {
-          trigger: 'item',
-          backgroundColor: '#0d1320',
-          borderColor: 'rgba(255,255,255,0.12)',
-          textStyle: { color: '#e7eaf2', fontSize: 12 },
-          formatter: (p: any) => {
-            const d = p?.data;
-            if (!d || !d._top) return `<b>${p.name}</b><br/><span style="color:#8b93a7">no data</span>`;
-            const births = stateTotal(states, sex.value, d._abbr, usYear.value);
-            return (
-              `<div style="font-weight:700">${p.name}</div>` +
-              `<div style="margin-top:2px">#1: <b>${d._top}</b> · ${fmtInt(d.value)}</div>` +
-              `<div style="color:#8b93a7;font-size:11px">${fmtInt(births)} babies tracked</div>`
-            );
-          },
-        },
-        series: [
-          {
-            type: 'map',
-            map: 'US',
-            roam: true,
-            scaleLimit: { min: 1, max: 8 },
-            nameProperty: 'name',
-            label: {
-              show: true,
-              color: '#0a0e18',
-              fontSize: 7.5,
-              fontWeight: 700,
-              // light halo keeps the small dark text legible over any state fill
-              textBorderColor: 'rgba(255,255,255,0.55)',
-              textBorderWidth: 1.4,
-              formatter: (p: any) => p.data?._top ?? '',
-            },
-            labelLayout: { hideOverlap: true },
-            itemStyle: { borderColor: 'rgba(10,14,24,0.7)', borderWidth: 0.6, areaColor: '#19202e' },
-            emphasis: {
-              label: { show: true, color: '#06101f', fontSize: 11 },
-              itemStyle: { areaColor: '#cfe0ff' },
-            },
-            select: { disabled: true },
-            data: [],
-          },
-        ],
-      },
-      { notMerge: true },
-    );
+    chart.setOption(US_MAP_OPTION, { notMerge: true });
   }, [ready]);
+
+  const resetView = () => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    chart.setOption(US_MAP_OPTION, { notMerge: true });
+    chart.setOption({ series: [{ data: derived.data }] });
+  };
 
   // Year/sex changes MERGE just the series data into the live chart, so the map
   // keeps the user's current zoom/pan — scrubbing no longer snaps it back.
@@ -237,7 +229,14 @@ function USMap({ states }: { states: USStates }) {
     chart.setOption({ series: [{ data: derived.data }] });
   }, [derived, ready]);
 
-  return <div ref={elRef} class="viz" style={{ width: '100%', aspectRatio: '1.95 / 1', maxHeight: '460px' }} />;
+  return (
+    <div class="viz-wrap" style={{ width: '100%' }}>
+      <div ref={elRef} class="viz" style={{ width: '100%', aspectRatio: '1.95 / 1', maxHeight: '460px' }} />
+      <button class="viz-reset" title="Reset zoom" aria-label="Reset zoom" onClick={resetView}>
+        ⤢
+      </button>
+    </div>
+  );
 }
 
 function MapLegend({ states }: { states: USStates }) {
@@ -362,6 +361,7 @@ function TrendChart({ series, years }: { series: USNameSeries; years: number[] }
   const year = usYear.value;
   const { elRef, chartRef, ready } = useEChart();
   const [picked, setPicked] = useState<string[]>([]);
+  const [notFound, setNotFound] = useState<string | null>(null);
   const allNames = useMemo(() => availableNames(series, s), [series, s]);
 
   useEffect(() => {
@@ -401,6 +401,7 @@ function TrendChart({ series, years }: { series: USNameSeries; years: number[] }
           textStyle: { color: '#e7eaf2', fontSize: 12 },
         },
         legend: { show: false },
+        dataZoom: [{ type: 'inside', filterMode: 'none' }],
         grid: { left: 8, right: 14, top: 10, bottom: 24, containLabel: true },
         xAxis: {
           type: 'category',
@@ -436,12 +437,25 @@ function TrendChart({ series, years }: { series: USNameSeries; years: number[] }
     const v = raw.trim();
     if (!v) return;
     const match = allNames.find((n) => n.toLowerCase() === v.toLowerCase());
-    if (match) setPicked((p) => (p.includes(match) ? p : [...p, match]));
+    if (match) {
+      setNotFound(null);
+      setPicked((p) => (p.includes(match) ? p : [...p, match]));
+    } else {
+      // No silent no-op: tell the user the name isn't in the dataset.
+      setNotFound(v);
+    }
   };
+
+  const resetZoom = () => chartRef.current?.dispatchAction({ type: 'dataZoom', start: 0, end: 100 });
 
   return (
     <>
-      <div ref={elRef} class="viz" style={{ height: '300px' }} />
+      <div class="viz-wrap">
+        <div ref={elRef} class="viz" style={{ height: '300px' }} />
+        <button class="viz-reset" title="Reset zoom" aria-label="Reset zoom" onClick={resetZoom}>
+          ⤢
+        </button>
+      </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10, alignItems: 'center' }}>
         {picked.map((n) => (
           <span class="tag" key={n} style={{ cursor: 'pointer' }} onClick={() => setPicked((p) => p.filter((x) => x !== n))}>
@@ -480,9 +494,15 @@ function TrendChart({ series, years }: { series: USNameSeries; years: number[] }
             addName(el.value);
             el.value = '';
           }}
+          onFocus={() => setNotFound(null)}
         />
+        {notFound && (
+          <span class="hint" style={{ color: '#f7637c', whiteSpace: 'nowrap' }}>
+            “{notFound}” isn’t in the dataset
+          </span>
+        )}
         <datalist id="us-name-options">
-          {allNames.slice(0, 1200).map((n) => (
+          {allNames.slice(0, 2500).map((n) => (
             <option value={n} key={n} />
           ))}
         </datalist>

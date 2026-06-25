@@ -243,7 +243,8 @@ function USMap({ states }: { states: USStates }) {
           {
             type: 'map',
             map: 'US',
-            roam: false,
+            roam: true,
+            scaleLimit: { min: 1, max: 8 },
             nameProperty: 'name',
             label: {
               show: true,

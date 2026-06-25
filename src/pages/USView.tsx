@@ -33,7 +33,6 @@ const SPEEDS = [
 
 // Small / crowded states where a persistent map label overflows the polygon.
 // Their #1 name shows on hover (emphasis) instead of being baked on the map.
-const SMALL_STATES = new Set(['RI', 'DE', 'CT', 'NJ', 'MD', 'DC', 'MA', 'NH', 'VT']);
 
 export function USView() {
   const [bundle, setBundle] = useState<Bundle | null>(null);
@@ -82,7 +81,7 @@ export function USView() {
   const natTotal = nationalTotal(nat, s, year);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div class="us-view" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div class="grid cols-3">
         <div class="panel">
           <div class="panel-head">
@@ -96,43 +95,6 @@ export function USView() {
           </div>
 
           {mapReady && <USMap states={states} />}
-
-          <div class="scrubber">
-            <button
-              class={'playbtn' + (playing ? ' playing' : '')}
-              onClick={() => (usPlaying.value = !playing)}
-              aria-label={playing ? 'Pause' : 'Play'}
-            >
-              {playing ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <rect x="6" y="5" width="4" height="14" rx="1" />
-                  <rect x="14" y="5" width="4" height="14" rx="1" />
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M7 5l12 7-12 7z" />
-                </svg>
-              )}
-            </button>
-            <span class="yearbadge">{year}</span>
-            <input
-              type="range"
-              min={range.min}
-              max={range.max}
-              value={year}
-              onInput={(e) => {
-                usPlaying.value = false;
-                usYear.value = parseInt((e.target as HTMLInputElement).value, 10);
-              }}
-            />
-            <select class="speedsel" value={String(speed)} onChange={(e) => setSpeed(parseInt((e.target as HTMLSelectElement).value, 10))}>
-              {SPEEDS.map((sp) => (
-                <option value={String(sp.ms)} key={sp.ms}>
-                  {sp.label}
-                </option>
-              ))}
-            </select>
-          </div>
 
           <MapLegend states={states} />
         </div>
@@ -183,6 +145,47 @@ export function USView() {
           <TrendChart series={series} years={nat.years} />
         </div>
       </div>
+
+      {/* global sticky time bar — one scrubber drives usYear for the map + ALL
+          charts (replaces the big per-chart year overlays). */}
+      <div class="timebar">
+        <div class="timebar-inner">
+          <button
+            class={'playbtn' + (playing ? ' playing' : '')}
+            onClick={() => (usPlaying.value = !playing)}
+            aria-label={playing ? 'Pause' : 'Play'}
+          >
+            {playing ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="5" width="4" height="14" rx="1" />
+                <rect x="14" y="5" width="4" height="14" rx="1" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7 5l12 7-12 7z" />
+              </svg>
+            )}
+          </button>
+          <span class="timebar-year">{year}</span>
+          <input
+            type="range"
+            min={range.min}
+            max={range.max}
+            value={year}
+            onInput={(e) => {
+              usPlaying.value = false;
+              usYear.value = parseInt((e.target as HTMLInputElement).value, 10);
+            }}
+          />
+          <select class="speedsel" value={String(speed)} onChange={(e) => setSpeed(parseInt((e.target as HTMLSelectElement).value, 10))}>
+            {SPEEDS.map((sp) => (
+              <option value={String(sp.ms)} key={sp.ms}>
+                {sp.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
     </div>
   );
 }
@@ -208,9 +211,8 @@ function USMap({ states }: { states: USStates }) {
         value: top ? top[1] : 0,
         _abbr: row.abbr,
         _top: tops[i],
-        // Suppress the persistent name label on tiny/crowded states (it spills
-        // outside the polygon); the name still appears on hover via emphasis.
-        label: SMALL_STATES.has(row.abbr) ? { show: false } : undefined,
+        // All states carry their #1 label; ECharts hideOverlap culls collisions
+        // at low zoom and reveals them as you zoom into the smaller states.
         itemStyle: { areaColor: tops[i] ? scale.colorFor(tops[i]) : '#19202e' },
       };
     });
@@ -249,8 +251,11 @@ function USMap({ states }: { states: USStates }) {
             label: {
               show: true,
               color: '#0a0e18',
-              fontSize: 9,
+              fontSize: 7.5,
               fontWeight: 700,
+              // light halo keeps the small dark text legible over any state fill
+              textBorderColor: 'rgba(255,255,255,0.55)',
+              textBorderWidth: 1.4,
               formatter: (p: any) => p.data?._top ?? '',
             },
             labelLayout: { hideOverlap: true },
@@ -379,12 +384,7 @@ function BarRace({ nat }: { nat: USNational }) {
     });
   }, [nat, s, year, ready]);
 
-  return (
-    <div class="viz-wrap">
-      <div class="year-overlay" aria-live="polite">{year}</div>
-      <div ref={elRef} class="viz" style={{ height: '360px' }} />
-    </div>
-  );
+  return <div ref={elRef} class="viz" style={{ height: '360px' }} />;
 }
 
 // --------------------------------------------------------------------------
@@ -465,10 +465,7 @@ function TrendChart({ series, years }: { series: USNameSeries; years: number[] }
 
   return (
     <>
-      <div class="viz-wrap">
-        <div class="year-overlay year-overlay--sm" aria-live="polite">{year}</div>
-        <div ref={elRef} class="viz" style={{ height: '300px' }} />
-      </div>
+      <div ref={elRef} class="viz" style={{ height: '300px' }} />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10, alignItems: 'center' }}>
         {picked.map((n) => (
           <span class="tag" key={n} style={{ cursor: 'pointer' }} onClick={() => setPicked((p) => p.filter((x) => x !== n))}>

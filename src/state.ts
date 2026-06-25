@@ -1,7 +1,7 @@
 import { signal } from '@preact/signals';
 import type { Sex, View } from './types';
 
-export const view = signal<View>('global');
+export const view = signal<View>('us');
 export const sex = signal<Sex>('C');
 
 // alpha-2 country code currently focused (search box / globe click / map click)

@@ -379,24 +379,18 @@ body {
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
 }
 
-/* sticky global time bar (US view) — one scrubber drives usYear for the map +
-   every chart, replacing the big per-chart year overlays. */
+/* US year scrubber — a second row INSIDE the sticky topbar. Moved up from a
+   fixed BOTTOM bar that sat in the iOS home-indicator gesture strip (unreliable
+   to grab, and it kept re-summoning the Safari toolbar). As a child of the
+   already-sticky .topbar it pins under the toolbar with zero stacking math. */
 .timebar {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  z-index: 60;
-  background: rgba(9, 12, 19, 0.9);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid var(--line2);
-  /* generous bottom standoff: 24px ALWAYS (even if iOS reports safe-area as 0),
-     plus the inset — keeps the grip clear of the home-indicator gesture strip
-     that otherwise eats the touch / re-summons the Safari toolbar. */
-  padding: 12px 16px calc(24px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: rgba(13, 17, 27, 0.55);
 }
 .timebar-inner {
-  max-width: 1180px;
+  max-width: 1320px;
   margin: 0 auto;
+  padding: 8px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -410,12 +404,10 @@ body {
   color: var(--text);
 }
 .timebar .playbtn { width: 38px; height: 38px; }
-/* clear space so the last chart can scroll above the fixed bar */
-.us-view { padding-bottom: calc(116px + env(safe-area-inset-bottom)); }
 @media (max-width: 720px) {
   .timebar-year { font-size: 19px; min-width: 46px; }
   .timebar .playbtn { width: 34px; height: 34px; }
-  .us-view { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+  .timebar-inner { padding: 8px 12px; }
 }
 .yearbadge {
   font-variant-numeric: tabular-nums;

@@ -50,3 +50,38 @@ Fix (src/styles/main.css):
   26x46 rounded-rectangle grip with finger ridges. 52px touch target.
 - `touch-action:none` on the input so iOS doesn't steal the drag to scroll.
 - `.us-view` spacer bumped to `calc(116/112px + safe-area)` for the taller bar.
+
+## 2026-06-25 — feedback round 3 (states slider, global map glitch, search)
+Sam: states slider still fucky + resets map zoom; try a sticky topbar; drop the
+"search a country" box; global map has a horizontal glitch.
+- **Global map horizontal glitch = antimeridian smear.** Russia (ccn3 643), Fiji
+  (242) and Antarctica (010) each span −180→+180 in world-110m; on the flat
+  equirectangular ECharts map their wrapping rings flood a solid band across the
+  whole width (the orange "Russia" stripe). Fix in `utils/geo.ts`: `topoToGeo`
+  now unwraps every ring (strip ±360° lng jumps so e.g. eastern Russia's −179°
+  becomes +181°, contiguous with the mainland). Verified numerically: Russia's
+  smear ring goes [−180,180] → [27,190]. Antarctica's ring legitimately starts
+  at the seam so unwrap can't fix it → GlobalView additionally drops ccn3 010
+  from the flat map (no name data anyway). Globe keeps all three (a sphere has
+  no seam; 181° == −179°).
+- **Slider reset map zoom = `notMerge:true`.** USMap re-set the WHOLE option on
+  every year/sex change, wiping ECharts roam. Split into (1) a base option set
+  ONCE on `ready` (tooltip reads live `sex.value`/`usYear.value` so it never
+  goes stale) + (2) a data-only `setOption({series:[{data}]})` MERGE on change.
+  Merge preserves roam → scrubbing keeps the user's zoom/pan. Verified via
+  Playwright: wheel-zoom the map, scrub 2024→1984, framing identical.
+- **Slider → sticky topbar.** Killed the fixed BOTTOM `.timebar` (the documented
+  iOS home-indicator pain) and moved the scrubber into the sticky `.topbar` as a
+  second row, US-view only (`App.tsx`: `{v==='us' && <USTimeBar/>}`). New
+  `components/USTimeBar.tsx` reads new signals `usSpeed`/`usRange`; USView sets
+  `usRange` on load and keeps the play interval. `.timebar` CSS is now a plain
+  in-header row — no fixed/standoff/`.us-view` padding hacks.
+- **Removed the country search box.** Dropped `<CountrySearch/>` from the topbar
+  (App.tsx) and the "search above"/"search bar" copy in Globe/Global. Country
+  focus still works via map/globe taps + the Countries badge list.
+- **Data:** SSA released 2025 on 2026-05-08 (national 1880–2025, state 1910–2025)
+  but our GitHub mirrors (leggitta, BazilAkram) are still 404 for 2025 and SSA
+  is Akamai-blocked from this datacenter IP (403). 2026 doesn't exist until
+  ~May 2027. Pre-1880 national / pre-1910 state: only lower-quality census-
+  derived sources (galbithink/IPUMS), not bolted on. 2025 ingest pending a
+  reachable source.

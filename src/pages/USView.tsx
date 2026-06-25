@@ -15,7 +15,7 @@ import {
   stateTop,
   stateTotal,
 } from '../data/usHelpers';
-import { sex, SEX_LABEL, selectedState, usPlaying, usYear } from '../state';
+import { sex, SEX_LABEL, selectedState, usPlaying, usRange, usSpeed, usYear } from '../state';
 import type { USNameSeries, USNational, USStates } from '../types';
 
 interface Bundle {
@@ -24,30 +24,24 @@ interface Bundle {
   series: USNameSeries;
 }
 
-const SPEEDS = [
-  { label: '0.5×', ms: 900 },
-  { label: '1×', ms: 450 },
-  { label: '2×', ms: 180 },
-  { label: '4×', ms: 90 },
-];
-
 // Small / crowded states where a persistent map label overflows the polygon.
 // Their #1 name shows on hover (emphasis) instead of being baked on the map.
 
 export function USView() {
   const [bundle, setBundle] = useState<Bundle | null>(null);
   const [mapReady, setMapReady] = useState(false);
-  const [speed, setSpeed] = useState(450);
 
   const s = sex.value;
   const year = usYear.value;
   const playing = usPlaying.value;
+  const speed = usSpeed.value;
   const selSt = selectedState.value;
 
   useEffect(() => {
     Promise.all([loadUSNational(), loadUSStates(), loadUSSeries(), loadUSGeo()]).then(
       async ([nat, states, series, usGeo]) => {
         await registerMapOnce('US', usGeo);
+        usRange.value = { min: states.minYear, max: states.maxYear };
         usYear.value = states.maxYear;
         setBundle({ nat, states, series });
         setMapReady(true);
@@ -58,7 +52,7 @@ export function USView() {
     };
   }, []);
 
-  const range = bundle ? { min: bundle.states.minYear, max: bundle.states.maxYear } : { min: 1910, max: 2024 };
+  const range = usRange.value;
 
   useEffect(() => {
     if (!playing) return;
@@ -145,47 +139,6 @@ export function USView() {
           <TrendChart series={series} years={nat.years} />
         </div>
       </div>
-
-      {/* global sticky time bar — one scrubber drives usYear for the map + ALL
-          charts (replaces the big per-chart year overlays). */}
-      <div class="timebar">
-        <div class="timebar-inner">
-          <button
-            class={'playbtn' + (playing ? ' playing' : '')}
-            onClick={() => (usPlaying.value = !playing)}
-            aria-label={playing ? 'Pause' : 'Play'}
-          >
-            {playing ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="6" y="5" width="4" height="14" rx="1" />
-                <rect x="14" y="5" width="4" height="14" rx="1" />
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M7 5l12 7-12 7z" />
-              </svg>
-            )}
-          </button>
-          <span class="timebar-year">{year}</span>
-          <input
-            type="range"
-            min={range.min}
-            max={range.max}
-            value={year}
-            onInput={(e) => {
-              usPlaying.value = false;
-              usYear.value = parseInt((e.target as HTMLInputElement).value, 10);
-            }}
-          />
-          <select class="speedsel" value={String(speed)} onChange={(e) => setSpeed(parseInt((e.target as HTMLSelectElement).value, 10))}>
-            {SPEEDS.map((sp) => (
-              <option value={String(sp.ms)} key={sp.ms}>
-                {sp.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
     </div>
   );
 }
@@ -219,6 +172,9 @@ function USMap({ states }: { states: USStates }) {
     return { scale, data };
   }, [states, s, year]);
 
+  // Base option set ONCE. The tooltip reads the live `sex`/`usYear` signals, so
+  // it never goes stale — which means we never have to re-set the whole option
+  // (and thus never reset the user's roam) when the year or sex changes.
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart || !ready) return;
@@ -233,7 +189,7 @@ function USMap({ states }: { states: USStates }) {
           formatter: (p: any) => {
             const d = p?.data;
             if (!d || !d._top) return `<b>${p.name}</b><br/><span style="color:#8b93a7">no data</span>`;
-            const births = stateTotal(states, s, d._abbr, usYear.value);
+            const births = stateTotal(states, sex.value, d._abbr, usYear.value);
             return (
               `<div style="font-weight:700">${p.name}</div>` +
               `<div style="margin-top:2px">#1: <b>${d._top}</b> · ${fmtInt(d.value)}</div>` +
@@ -265,13 +221,21 @@ function USMap({ states }: { states: USStates }) {
               itemStyle: { areaColor: '#cfe0ff' },
             },
             select: { disabled: true },
-            data: derived.data,
+            data: [],
           },
         ],
       },
       { notMerge: true },
     );
-  }, [derived, s, ready]);
+  }, [ready]);
+
+  // Year/sex changes MERGE just the series data into the live chart, so the map
+  // keeps the user's current zoom/pan — scrubbing no longer snaps it back.
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !ready) return;
+    chart.setOption({ series: [{ data: derived.data }] });
+  }, [derived, ready]);
 
   return <div ref={elRef} class="viz" style={{ width: '100%', aspectRatio: '1.95 / 1', maxHeight: '460px' }} />;
 }

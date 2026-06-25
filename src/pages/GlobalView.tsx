@@ -33,6 +33,10 @@ export function GlobalView() {
     let alive = true;
     Promise.all([loadGlobal(), countryIndex(), loadWorldTopo()]).then(async ([global, ix, topo]) => {
       const geo = topoToGeo(topo, 'countries');
+      // Antarctica (ccn3 010) carries no name data and its ring spans the whole
+      // ±180° seam — drop it from the flat choropleth so no band stretches the
+      // bottom edge. The 3D globe keeps it (a sphere has no antimeridian).
+      geo.features = geo.features.filter((f: any) => parseInt(f.id, 10) !== 10);
       const nameToA2 = new Map<string, string>();
       for (const f of geo.features) {
         const c = ix.byCcn3.get(String(parseInt(f.id, 10)));
@@ -240,7 +244,7 @@ function InferencePanel({ derived, s }: { derived: Derived; s: Sex }) {
         ))}
       </div>
       <p class="hint" style="margin-top:12px">
-        Pick a country from the search bar, the map, or the badges to see its full top-20.
+        Pick a country from the map or the badges to see its full top-20.
       </p>
     </div>
   );

@@ -12,6 +12,8 @@ export const selectedState = signal<string | null>(null);
 // US time scrubber
 export const usYear = signal<number>(2024);
 export const usPlaying = signal<boolean>(false);
+export const usSpeed = signal<number>(450);
+export const usRange = signal<{ min: number; max: number }>({ min: 1910, max: 2024 });
 
 // shared country search query string
 export const query = signal<string>('');

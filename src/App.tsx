@@ -1,6 +1,6 @@
 import { view } from './state';
 import { SexToggle } from './components/SexToggle';
-import { CountrySearch } from './components/CountrySearch';
+import { USTimeBar } from './components/USTimeBar';
 import { Footer } from './components/Footer';
 import { GlobalView } from './pages/GlobalView';
 import { USView } from './pages/USView';
@@ -36,8 +36,8 @@ export function App() {
           </nav>
           <span class="spacer" />
           <SexToggle />
-          <CountrySearch />
         </div>
+        {v === 'us' && <USTimeBar />}
       </header>
       <main class="main">
         {v === 'global' && <GlobalView />}

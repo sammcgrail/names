@@ -162,8 +162,7 @@ export function GlobeView() {
         <div class="panel" style={{ padding: 12 }}>
           <h2 style={{ fontSize: 13 }}>🪐 Spin the world</h2>
           <div class="sub" style={{ marginBottom: 8 }}>
-            Coloured by top {SEX_LABEL[s].toLowerCase()} name. Click a country — or search above — to
-            dig in.
+            Coloured by top {SEX_LABEL[s].toLowerCase()} name. Tap a country to dig in.
           </div>
           {derived && (
             <div class="legend" style={{ marginTop: 0 }}>

@@ -137,7 +137,7 @@ export function USView() {
         <div class="panel">
           <h2>🏁 Name race · national top 12</h2>
           <div class="sub">Bars re-sort live as you play — watch names overtake each other.</div>
-          <BarRace nat={nat} />
+          <BarRace nat={nat} playing={playing} />
         </div>
         <div class="panel">
           <h2>📈 Name trends over time</h2>
@@ -330,10 +330,15 @@ function StateDetail({ states, abbr, year }: { states: USStates; abbr: string; y
 }
 
 // --------------------------------------------------------------------------
-function BarRace({ nat }: { nat: USNational }) {
+function BarRace({ nat, playing }: { nat: USNational; playing: boolean }) {
   const s = sex.value;
   const year = usYear.value;
   const { elRef, chartRef, ready } = useEChart();
+
+  // Scrubbing needs snappy, tightly-tracking re-sorts; autoplay can breathe.
+  // Short duration while scrubbing keeps the bars locked to a fast drag instead
+  // of lagging a third of a second behind every step.
+  const animMs = playing ? 300 : 130;
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -356,8 +361,8 @@ function BarRace({ nat }: { nat: USNational }) {
         axisLabel: { color: '#e7eaf2', fontWeight: 600, fontSize: 12 },
         axisTick: { show: false },
         axisLine: { show: false },
-        animationDuration: 280,
-        animationDurationUpdate: 280,
+        animationDuration: animMs,
+        animationDurationUpdate: animMs,
       },
       series: [
         {
@@ -378,11 +383,11 @@ function BarRace({ nat }: { nat: USNational }) {
         },
       ],
       animationDuration: 0,
-      animationDurationUpdate: 320,
+      animationDurationUpdate: animMs,
       animationEasing: 'linear',
       animationEasingUpdate: 'linear',
     });
-  }, [nat, s, year, ready]);
+  }, [nat, s, year, ready, animMs]);
 
   return <div ref={elRef} class="viz" style={{ height: '360px' }} />;
 }
@@ -463,6 +468,13 @@ function TrendChart({ series, years }: { series: USNameSeries; years: number[] }
     );
   }, [series, s, picked, years, year, ready]);
 
+  const addName = (raw: string) => {
+    const v = raw.trim();
+    if (!v) return;
+    const match = allNames.find((n) => n.toLowerCase() === v.toLowerCase());
+    if (match) setPicked((p) => (p.includes(match) ? p : [...p, match]));
+  };
+
   return (
     <>
       <div ref={elRef} class="viz" style={{ height: '300px' }} />
@@ -475,19 +487,34 @@ function TrendChart({ series, years }: { series: USNameSeries; years: number[] }
         <input
           list="us-name-options"
           placeholder="+ add name"
+          enterkeyhint="done"
+          autocomplete="off"
+          autocapitalize="words"
           style={{
             background: 'var(--panel)',
             border: '1px solid var(--line)',
             borderRadius: 8,
             color: 'var(--text)',
-            padding: '6px 10px',
-            width: 130,
+            padding: '8px 12px',
+            fontSize: 16,
+            width: 140,
+          }}
+          // iOS Safari does NOT fire `change` on the keyboard Go/return key (it
+          // only fires on blur), so typing a name + Go did nothing on iPhone.
+          // Handle Enter explicitly; keep onChange for blur + desktop datalist
+          // picks. addName() de-dupes, so both firing is harmless.
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              const el = e.currentTarget as HTMLInputElement;
+              addName(el.value);
+              el.value = '';
+            }
           }}
           onChange={(e) => {
-            const v = (e.target as HTMLInputElement).value;
-            const match = allNames.find((n) => n.toLowerCase() === v.toLowerCase());
-            if (match && !picked.includes(match)) setPicked((p) => [...p, match]);
-            (e.target as HTMLInputElement).value = '';
+            const el = e.currentTarget as HTMLInputElement;
+            addName(el.value);
+            el.value = '';
           }}
         />
         <datalist id="us-name-options">

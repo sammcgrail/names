@@ -35,3 +35,18 @@ Male / Female / Combined toggle affects every view. Country search autocomplete 
 
 ## Deploy
 `docker compose up --build -d` in /root/names; Caddy block + `/names` redirect + homepage tile in /root/box; status container list in /root/seb; rebuild `web` (`docker compose build --no-cache web` in /root/box); CF cache purge. Mobile baseline gate (`check-mobile.py`) passes.
+
+## 2026-06-25 — slider grab fix (iOS Safari bottom bar)
+Problem: time-bar slider unusable on iPhone, esp. when Safari's bottom toolbar is
+hidden — the control sat in the home-indicator gesture strip (`bottom:0` + only
+`10px + safe-area`; safe-area is unreliable/transient on iOS so the standoff
+collapsed). Thumb was a 30px circle = tiny target.
+Fix (src/styles/main.css):
+- `.timebar` padding-bottom → `calc(24px + env(safe-area-inset-bottom))`: a fixed
+  24px standoff that holds even if iOS reports safe-area as 0. Lifts the grip out
+  of the gesture/toolbar-re-summon zone in BOTH toolbar states.
+- Slider redesigned via `::-webkit-slider-runnable-track`/`::-moz-range-track`:
+  20px rounded rectangle track with decade tick marks (graduations), and a tall
+  26x46 rounded-rectangle grip with finger ridges. 52px touch target.
+- `touch-action:none` on the input so iOS doesn't steal the drag to scroll.
+- `.us-view` spacer bumped to `calc(116/112px + safe-area)` for the taller bar.

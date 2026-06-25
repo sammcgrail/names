@@ -318,33 +318,65 @@ body {
   -webkit-appearance: none;
   appearance: none;
   flex: 1;
-  height: 38px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--accent), var(--panel2));
-  background-clip: content-box;
-  outline: none;
   min-width: 140px;
-  /* The whole 38px element height is the touch target (≈ the play button), but
-     vertical padding shrinks the *painted* track to a slim 8px strip via
-     content-box clip — slim bar, big grab area. box-sizing:border-box (global
-     reset) folds the padding into the height. */
-  padding: 15px 0;
+  height: 52px;            /* tall, finger-friendly touch target */
+  background: transparent;
+  outline: none;
+  margin: 0;
   cursor: pointer;
+  touch-action: none;      /* slider owns the drag gesture — iOS won't steal it to scroll */
 }
+/* track — a real rounded rectangle with decade tick marks (graduations),
+   not a thin pill. 20px tall so it reads as a bar you can aim at. */
+.scrubber input[type='range']::-webkit-slider-runnable-track,
+.timebar input[type='range']::-webkit-slider-runnable-track {
+  height: 20px;
+  border-radius: 7px;
+  border: 1px solid var(--line2);
+  background-color: var(--panel2);
+  background-image:
+    repeating-linear-gradient(90deg,
+      rgba(255, 255, 255, 0.24) 0 1.5px,
+      transparent 1.5px 8.7719%),                              /* a tick every decade (10/114 yrs) */
+    linear-gradient(90deg, rgba(90, 156, 255, 0.50), rgba(90, 156, 255, 0.12));
+}
+.scrubber input[type='range']::-moz-range-track,
+.timebar input[type='range']::-moz-range-track {
+  height: 20px;
+  border-radius: 7px;
+  border: 1px solid var(--line2);
+  background-color: var(--panel2);
+  background-image:
+    repeating-linear-gradient(90deg,
+      rgba(255, 255, 255, 0.24) 0 1.5px,
+      transparent 1.5px 8.7719%),
+    linear-gradient(90deg, rgba(90, 156, 255, 0.50), rgba(90, 156, 255, 0.12));
+}
+/* thumb — a tall rounded-rectangle grip with finger ridges, not a tiny dot */
 .scrubber input[type='range']::-webkit-slider-thumb,
 .timebar input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 30px; height: 30px;
-  border-radius: 50%;
-  background: #fff;
-  border: 4px solid var(--accent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  width: 26px;
+  height: 46px;
+  margin-top: -13px;       /* centre the 46px grip over the 20px track */
+  border-radius: 9px;
+  background-color: #fff;
+  background-image: repeating-linear-gradient(90deg,
+    rgba(11, 16, 31, 0.22) 0 1.5px, transparent 1.5px 6px);    /* grip ridges */
+  border: 2px solid var(--accent);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
   cursor: pointer;
 }
 .scrubber input[type='range']::-moz-range-thumb,
 .timebar input[type='range']::-moz-range-thumb {
-  width: 30px; height: 30px; border-radius: 50%; background: #fff; border: 4px solid var(--accent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  width: 26px;
+  height: 46px;
+  border-radius: 9px;
+  background-color: #fff;
+  background-image: repeating-linear-gradient(90deg,
+    rgba(11, 16, 31, 0.22) 0 1.5px, transparent 1.5px 6px);
+  border: 2px solid var(--accent);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
 }
 
 /* sticky global time bar (US view) — one scrubber drives usYear for the map +
@@ -357,7 +389,10 @@ body {
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--line2);
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  /* generous bottom standoff: 24px ALWAYS (even if iOS reports safe-area as 0),
+     plus the inset — keeps the grip clear of the home-indicator gesture strip
+     that otherwise eats the touch / re-summons the Safari toolbar. */
+  padding: 12px 16px calc(24px + env(safe-area-inset-bottom));
 }
 .timebar-inner {
   max-width: 1180px;
@@ -376,11 +411,11 @@ body {
 }
 .timebar .playbtn { width: 38px; height: 38px; }
 /* clear space so the last chart can scroll above the fixed bar */
-.us-view { padding-bottom: 96px; }
+.us-view { padding-bottom: calc(116px + env(safe-area-inset-bottom)); }
 @media (max-width: 720px) {
   .timebar-year { font-size: 19px; min-width: 46px; }
   .timebar .playbtn { width: 34px; height: 34px; }
-  .us-view { padding-bottom: 88px; }
+  .us-view { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
 }
 .yearbadge {
   font-variant-numeric: tabular-nums;

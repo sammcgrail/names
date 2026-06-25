@@ -31,6 +31,10 @@ const SPEEDS = [
   { label: '4×', ms: 90 },
 ];
 
+// Small / crowded states where a persistent map label overflows the polygon.
+// Their #1 name shows on hover (emphasis) instead of being baked on the map.
+const SMALL_STATES = new Set(['RI', 'DE', 'CT', 'NJ', 'MD', 'DC', 'MA', 'NH', 'VT']);
+
 export function USView() {
   const [bundle, setBundle] = useState<Bundle | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -204,6 +208,9 @@ function USMap({ states }: { states: USStates }) {
         value: top ? top[1] : 0,
         _abbr: row.abbr,
         _top: tops[i],
+        // Suppress the persistent name label on tiny/crowded states (it spills
+        // outside the polygon); the name still appears on hover via emphasis.
+        label: SMALL_STATES.has(row.abbr) ? { show: false } : undefined,
         itemStyle: { areaColor: tops[i] ? scale.colorFor(tops[i]) : '#19202e' },
       };
     });
@@ -247,7 +254,10 @@ function USMap({ states }: { states: USStates }) {
             },
             labelLayout: { hideOverlap: true },
             itemStyle: { borderColor: 'rgba(10,14,24,0.7)', borderWidth: 0.6, areaColor: '#19202e' },
-            emphasis: { label: { color: '#06101f' }, itemStyle: { areaColor: '#cfe0ff' } },
+            emphasis: {
+              label: { show: true, color: '#06101f', fontSize: 11 },
+              itemStyle: { areaColor: '#cfe0ff' },
+            },
             select: { disabled: true },
             data: derived.data,
           },
@@ -257,7 +267,7 @@ function USMap({ states }: { states: USStates }) {
     );
   }, [derived, s, ready]);
 
-  return <div ref={elRef} class="viz" style={{ width: '100%', aspectRatio: '1.7 / 1', maxHeight: '480px' }} />;
+  return <div ref={elRef} class="viz" style={{ width: '100%', aspectRatio: '1.95 / 1', maxHeight: '460px' }} />;
 }
 
 function MapLegend({ states }: { states: USStates }) {
@@ -368,7 +378,12 @@ function BarRace({ nat }: { nat: USNational }) {
     });
   }, [nat, s, year, ready]);
 
-  return <div ref={elRef} class="viz" style={{ height: '360px' }} />;
+  return (
+    <div class="viz-wrap">
+      <div class="year-overlay" aria-live="polite">{year}</div>
+      <div ref={elRef} class="viz" style={{ height: '360px' }} />
+    </div>
+  );
 }
 
 // --------------------------------------------------------------------------
@@ -449,7 +464,10 @@ function TrendChart({ series, years }: { series: USNameSeries; years: number[] }
 
   return (
     <>
-      <div ref={elRef} class="viz" style={{ height: '300px' }} />
+      <div class="viz-wrap">
+        <div class="year-overlay year-overlay--sm" aria-live="polite">{year}</div>
+        <div ref={elRef} class="viz" style={{ height: '300px' }} />
+      </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10, alignItems: 'center' }}>
         {picked.map((n) => (
           <span class="tag" key={n} style={{ cursor: 'pointer' }} onClick={() => setPicked((p) => p.filter((x) => x !== n))}>

@@ -4,10 +4,11 @@ import { registerMapOnce } from '../utils/echartsLoader';
 import { useEChart } from '../utils/useEChart';
 import { topoToGeo } from '../utils/geo';
 import { buildNameColorScale, type ColorScale } from '../utils/colors';
-import { displayTop, namesFor, topName } from '../utils/names';
+import { countryFillColor, displayTop, namesFor, topName } from '../utils/names';
 import { sex, selectedCountry, SEX_LABEL } from '../state';
 import type { Country, GlobalNames, Sex } from '../types';
 import { CountryDrawer } from '../components/CountryDrawer';
+import { Collapsible } from '../components/Collapsible';
 
 interface Loaded {
   global: GlobalNames;
@@ -52,7 +53,14 @@ export function GlobalView() {
     if (!loaded) return null;
     const { global, ix, geo } = loaded;
     const withData = ix.list.filter((c) => global[c.cca2]);
-    const scale = buildNameColorScale(withData.map((c) => topName(global, c.cca2, s)));
+    // Legend / "shared names" source. In Combined mode include BOTH each
+    // country's male-#1 and female-#1 so the panel honestly reflects both
+    // genders (not just the male leaders that topName('C') would surface).
+    const legendNames =
+      s === 'C'
+        ? withData.flatMap((c) => [global[c.cca2]?.M[0], global[c.cca2]?.F[0]])
+        : withData.map((c) => topName(global, c.cca2, s));
+    const scale = buildNameColorScale(legendNames);
     const data = geo.features.map((f: any) => {
       const c = ix.byCcn3.get(String(parseInt(f.id, 10)));
       const tn = c ? topName(global, c.cca2, s) : null;
@@ -60,7 +68,9 @@ export function GlobalView() {
         name: f.properties.name,
         value: tn ? 1 : 0,
         _a2: c?.cca2 ?? null,
-        itemStyle: { areaColor: tn ? scale.colorFor(tn) : '#19202e' },
+        // stable per-name colour (M/F) or male+female blend (Combined) — never
+        // a single-hue intensity ramp, and Combined ≠ Male (feedback D + E).
+        itemStyle: { areaColor: c ? countryFillColor(global, c.cca2, s) : '#19202e' },
       };
     });
     const badges = withData
@@ -108,10 +118,10 @@ export function GlobalView() {
           </p>
         </div>
 
-        <div class="panel">
-          <h2>
-            🏳️ Countries <span class="tag">{derived.withDataCount}</span>
-          </h2>
+        <Collapsible
+          title={<>🏳️ Countries <span class="tag">{derived.withDataCount}</span></>}
+          defaultOpen={false}
+        >
           <div class="sub">Each badge shows a country’s #1 {SEX_LABEL[s].toLowerCase()} name — tap to focus.</div>
           <div class="badges" style={{ maxHeight: '330px', overflowY: 'auto' }}>
             {derived.badges.map(({ c, tn }) => (
@@ -128,7 +138,7 @@ export function GlobalView() {
               </div>
             ))}
           </div>
-        </div>
+        </Collapsible>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>

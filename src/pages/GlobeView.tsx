@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { countryIndex, loadGlobal, loadWorldTopo, type CountryIndex } from '../data/store';
 import { topoToGeo } from '../utils/geo';
-import { buildNameColorScale, type ColorScale } from '../utils/colors';
-import { topName } from '../utils/names';
+import { buildNameColorScale } from '../utils/colors';
+import { countryFillColor, topName } from '../utils/names';
 import { sex, selectedCountry, SEX_LABEL } from '../state';
 import type { Country, GlobalNames } from '../types';
 import { CountryDrawer } from '../components/CountryDrawer';
@@ -13,7 +13,6 @@ export function GlobeView() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<any>(null);
   const featuresRef = useRef<any[]>([]);
-  const scaleRef = useRef<ColorScale | null>(null);
   const sexRef = useRef(s);
   const userInteracted = useRef(false);
 
@@ -25,8 +24,7 @@ export function GlobeView() {
     return buildNameColorScale(withData.map((c) => topName(data.global, c.cca2, s)));
   }, [data, s]);
 
-  // keep accessor refs fresh
-  scaleRef.current = derived;
+  // keep accessor ref fresh (used by the polygon-cap colour accessor)
   sexRef.current = s;
 
   // load data + build globe once
@@ -44,8 +42,7 @@ export function GlobeView() {
 
       const capColor = (feat: any) => {
         const c = ix.byCcn3.get(String(parseInt(feat.id, 10)));
-        const tn = c ? topName(global, c.cca2, sexRef.current) : null;
-        return tn && scaleRef.current ? scaleRef.current.colorFor(tn) : 'rgba(38,47,64,0.9)';
+        return c ? countryFillColor(global, c.cca2, sexRef.current) : 'rgba(38,47,64,0.9)';
       };
       const label = (feat: any) => {
         const c = ix.byCcn3.get(String(parseInt(feat.id, 10)));
@@ -144,8 +141,7 @@ export function GlobeView() {
     if (!g) return;
     g.polygonCapColor((feat: any) => {
       const c = data?.ix.byCcn3.get(String(parseInt(feat.id, 10)));
-      const tn = c ? topName(data!.global, c.cca2, sexRef.current) : null;
-      return tn && scaleRef.current ? scaleRef.current.colorFor(tn) : 'rgba(38,47,64,0.9)';
+      return c ? countryFillColor(data!.global, c.cca2, sexRef.current) : 'rgba(38,47,64,0.9)';
     });
   }, [s, derived, data]);
 

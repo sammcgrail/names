@@ -25,5 +25,13 @@ Male / Female / Combined toggle affects every view. Country search autocomplete 
 - **globe.gl clears its mount node's children** → Preact overlays vanished. Fixed by giving globe.gl its own inner `.globe-canvas` div with overlays as siblings.
 - **Docker network pool exhausted** (33 compose networks) → `network_mode: bridge` (Caddy reaches via host published port, no dedicated subnet needed).
 
+## Feedback round 2 (B/C/D/E/F)
+- **D — stable per-name colours**: `nameColor(name)` is now a pure FNV-1a→HSL hash (bright 56–70% L band), cached. `buildNameColorScale.colorFor` routes through it, so a name keeps ONE colour everywhere (world/US/globe maps, legend, badges, bar-race). Frequency only orders the legend now, never picks colour.
+- **E1 — global "Both" map ≠ Male**: world + globe choropleths use `countryFillColor()`. M/F = that gender's #1 colour; Combined = `blendHex(maleColour, femaleColour)` — visibly its own map (the dataset has no counts, so a blend is the honest "both"). Badges/legend already dual via `displayTop`; legend source in Combined now includes both genders' #1s.
+- **C — year overlay**: big tabular `<div class="year-overlay">` floats top-right over the bar-race (44px) and trend chart (34px), bound to the `usYear` signal so it updates live while playing/scrubbing.
+- **B — US map fit**: `scripts`-style one-off rewrote `geo/usa-echarts.json` — Alaska scaled to ~16° wide (×0.62 height squash) inset under the SW, Hawaii scaled UP to ~7° wide under TX, Puerto Rico dropped. Overall bbox lon[-124.7,-67] lat[20.6,49.4] (~2:1) so CONUS fills the panel; container aspect 1.95:1.
+- **E3 — state label clip**: tiny/crowded states (RI DE CT NJ MD DC MA NH VT) drop their persistent label (`label.show:false` per-datum); name still shows on hover via emphasis. `hideOverlap` kept.
+- **F — mobile**: globe capped `min(56vh,460px)` on phones; long side panels use `<Collapsible>` (`<details>`-based — accordion <900px, force-open on desktop via `::details-content{content-visibility:visible}`); tappable UI gets `user-select:none`. Gate (`check-mobile.py`) exit 0.
+
 ## Deploy
 `docker compose up --build -d` in /root/names; Caddy block + `/names` redirect + homepage tile in /root/box; status container list in /root/seb; rebuild `web` (`docker compose build --no-cache web` in /root/box); CF cache purge. Mobile baseline gate (`check-mobile.py`) passes.
